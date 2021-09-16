@@ -74,6 +74,44 @@ public:
 		get_instance().log("[Critical]\t", CriticalPriority, message, args...);
 	}
 
+
+
+	template<typename... Args>
+	static void Trace(int line, const char* source_file, const char* message, Args... args)
+	{
+		get_instance().log(line, source_file, "[Trace]\t", TracePriority, message, args...);
+	}
+
+	template<typename... Args>
+	static void Debug(int line, const char* source_file, const char* message, Args... args)
+	{
+		get_instance().log(line, source_file, "[Debug]\t", DebugPriority, message, args...);
+	}
+
+	template<typename... Args>
+	static void Info(int line, const char* source_file, const char* message, Args... args)
+	{
+		get_instance().log(line, source_file, "[Info]\t", InfoPriority, message, args...);
+	}
+
+	template<typename... Args>
+	static void Warn(int line, const char* source_file, const char* message, Args... args)
+	{
+		get_instance().log(line, source_file, "[Warn]\t", WarnPriority, message, args...);
+	}
+
+	template<typename... Args>
+	static void Error(int line, const char* source_file, const char* message, Args... args)
+	{
+		get_instance().log(line, source_file, "[Error]\t", ErrorPriority, message, args...);
+	}
+
+	template<typename... Args>
+	static void Critical(int line, const char* source_file, const char* message, Args... args)
+	{
+		get_instance().log(line, source_file, "[Critical]\t", CriticalPriority, message, args...);
+	}
+
 private:
 	Logger() {}
 
@@ -101,7 +139,7 @@ private:
 			char buffer[80];
 			strftime(buffer, 80, "%c", timestamp);
 
-			std::scoped_lock lock(log_mutex);
+			std::lock_guard<std::mutex> lock(log_mutex);
 			printf("%s\t", buffer);
 			printf(message_priority_str);
 			printf(message, args...);
@@ -117,24 +155,62 @@ private:
 		}
 	}
 
-	void enable_file_output()
+	template<typename... Args>
+	void log(int line_number, const char* source_file, const char* message_priority_str, LogPriority message_priority, const char* message, Args... args)
 	{
-		if (file != 0)
+		if (priority <= message_priority)
 		{
-			fclose(file);
-		}
+			std::time_t current_time = std::time(0);
+			std::tm* timestamp = std::localtime(&current_time);
+			char buffer[80];
+			strftime(buffer, 80, "%c", timestamp);
 
-		file = fopen(filepath, "a");
+			std::lock_guard<std::mutex> lock(log_mutex);
+			printf("%s\t", buffer);
+			printf(message_priority_str);
+			printf(message, args...);
+			printf(" on line %d in %s", line_number, source_file);
+			printf("\n");
+
+			if (file)
+			{
+				fprintf(file, "%s\t", buffer);
+				fprintf(file, message_priority_str);
+				fprintf(file, message, args...);
+				fprintf(file, " on line %d in %s", line_number, source_file);
+				fprintf(file, "\n");
+			}
+		}
+	}
+
+	bool enable_file_output()
+	{
+		free_file();
+
+		file = std::fopen(filepath, "a");
 
 		if (file == 0)
 		{
-			printf("Logger: Failed to open file at %s", filepath);
+			return false;
 		}
+
+		return true;
 	}
 
 	void free_file()
 	{
-		fclose(file);
-		file = 0;
+		if (file)
+		{
+			fclose(file);
+			file = 0;
+		}
 	}
 };
+
+
+#define LOG_TRACE(Message, ...) (Logger::Trace(__LINE__, __FILE__, Message, __VA_ARGS__))
+#define LOG_DEBUG(Message, ...) (Logger::Debug(__LINE__, __FILE__, Message, __VA_ARGS__))
+#define LOG_INFO(Message, ...) (Logger::Info(__LINE__, __FILE__, Message, __VA_ARGS__))
+#define LOG_WARN(Message, ...) (Logger::Warn(__LINE__, __FILE__, Message, __VA_ARGS__))
+#define LOG_ERROR(Message, ...) (Logger::Error(__LINE__, __FILE__, Message, __VA_ARGS__))
+#define LOG_CRITICAL(Message, ...) (Logger::Critical(__LINE__, __FILE__, Message, __VA_ARGS__))

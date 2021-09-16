@@ -14,13 +14,13 @@ int main()
 	const char* name = "User";
 	LOG_INFO("Hello %s", name);
 
-	LOG_CRITICAL("OH NO!", name);
+	// LOG_CRITICAL("OH NO!", name);
 	
 	return 0;
 }
 ```
 Output:
-> 15:07:31  15-02-2021    [Info]     Hello User
+> 09/15/21 19:58:45       [Info]  Hello User on line 13 in main.cpp 
 
 
 ###  Quick Start
@@ -28,7 +28,7 @@ Logger doesn't need to be instantiated, just include the header and use it like 
 ```cpp
 	LOG_INFO("Information %d", number);
 ```
-, also there is no need to put newline character at the end of the message, it will be done automatically.
+Newline character at the end of the message will be done added automatically.
 
 
 ## Reference Contents
